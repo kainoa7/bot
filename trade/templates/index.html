@@ -1,0 +1,1329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Terminal</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #12162d;
+            --bg-card: #1a1f3a;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #bd00ff;
+            --accent-pink: #ff006e;
+            --text-primary: #ffffff;
+            --text-secondary: #8892b0;
+            --success: #00ff88;
+            --warning: #ffd93d;
+            --danger: #ff3864;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        /* Animated gradient background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(ellipse at 20% 30%, rgba(0, 240, 255, 0.15), transparent 50%),
+                radial-gradient(ellipse at 80% 70%, rgba(189, 0, 255, 0.15), transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 0, 110, 0.1), transparent 50%);
+            animation: gradientShift 15s ease infinite;
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        @keyframes gradientShift {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 50px;
+            padding-top: 20px;
+        }
+        
+        .header h1 {
+            font-size: 3.5em;
+            font-weight: 800;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+            letter-spacing: -2px;
+        }
+        
+        .header p {
+            color: var(--text-secondary);
+            font-size: 1.2em;
+            font-weight: 400;
+        }
+        
+        /* Tab Navigation */
+        .tab-nav {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 40px;
+        }
+        
+        .tab-btn {
+            background: var(--bg-card);
+            border: 2px solid rgba(0, 240, 255, 0.2);
+            color: var(--text-secondary);
+            padding: 16px 45px;
+            font-size: 1.1em;
+            font-weight: 600;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .tab-btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 240, 255, 0.2), transparent);
+            transition: left 0.5s ease;
+        }
+        
+        .tab-btn:hover {
+            border-color: var(--accent-cyan);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(0, 240, 255, 0.3);
+        }
+        
+        .tab-btn:hover::before {
+            left: 100%;
+        }
+        
+        .tab-btn.active {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            color: var(--text-primary);
+            border-color: transparent;
+            box-shadow: 0 8px 30px rgba(0, 240, 255, 0.4);
+        }
+        
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Glass Card */
+        .glass-card {
+            background: rgba(26, 31, 58, 0.7);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 35px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+        
+        .glass-card:hover {
+            border-color: rgba(0, 240, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+        }
+        
+        /* Input Styles */
+        .input-group {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        input[type="text"],
+        input[type="date"],
+        input[type="number"],
+        select {
+            flex: 1;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            color: var(--text-primary);
+            font-size: 1em;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+        
+        input::placeholder {
+            color: var(--text-secondary);
+        }
+        
+        input:focus,
+        select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 3px rgba(0, 240, 255, 0.1);
+        }
+        
+        /* Button */
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-purple));
+            border: none;
+            color: var(--text-primary);
+            padding: 18px 50px;
+            font-size: 1.1em;
+            font-weight: 700;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 240, 255, 0.3);
+            width: 100%;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 30px rgba(0, 240, 255, 0.5);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        /* Loading Animation */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 60px 0;
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            width: 60px;
+            height: 60px;
+            margin: 0 auto 20px;
+            border: 4px solid rgba(0, 240, 255, 0.2);
+            border-top: 4px solid var(--accent-cyan);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* Error Message */
+        .error-message {
+            display: none;
+            background: rgba(255, 56, 100, 0.1);
+            border: 1px solid var(--danger);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 20px;
+            color: var(--danger);
+            font-weight: 500;
+        }
+        
+        .error-message.active {
+            display: block;
+            animation: shake 0.5s ease;
+        }
+        
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+        
+        /* Results Container */
+        .results {
+            display: none;
+            margin-top: 40px;
+        }
+        
+        .results.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
+        }
+        
+        /* Recommendation Header */
+        .recommendation-header {
+            background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(189, 0, 255, 0.1));
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            border-radius: 16px;
+            padding: 30px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .ticker-price {
+            font-size: 2em;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+        
+        .recommendation-badge {
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-weight: 700;
+            font-size: 1.3em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .badge-call {
+            background: linear-gradient(135deg, var(--success), #00cc70);
+            color: var(--bg-primary);
+            box-shadow: 0 5px 20px rgba(0, 255, 136, 0.4);
+        }
+        
+        .badge-put {
+            background: linear-gradient(135deg, var(--danger), #cc1744);
+            color: white;
+            box-shadow: 0 5px 20px rgba(255, 56, 100, 0.4);
+        }
+        
+        .badge-neutral {
+            background: linear-gradient(135deg, var(--warning), #ffb700);
+            color: var(--bg-primary);
+            box-shadow: 0 5px 20px rgba(255, 217, 61, 0.4);
+        }
+        
+        .confidence {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1em;
+            font-weight: 600;
+        }
+        
+        .indicator {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            box-shadow: 0 0 10px currentColor;
+        }
+        
+        .indicator-green { background: var(--success); }
+        .indicator-yellow { background: var(--warning); }
+        .indicator-red { background: var(--danger); }
+        
+        /* Grid Layout */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 25px;
+            margin-bottom: 25px;
+        }
+        
+        /* Card */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 25px;
+            transition: all 0.3s ease;
+        }
+        
+        .card:hover {
+            border-color: rgba(0, 240, 255, 0.3);
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
+        }
+        
+        .card h3 {
+            font-size: 1.3em;
+            font-weight: 700;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--accent-cyan);
+        }
+        
+        /* Help Icon */
+        .help-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 22px;
+            height: 22px;
+            background: rgba(0, 240, 255, 0.2);
+            color: var(--accent-cyan);
+            border-radius: 50%;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: help;
+            transition: all 0.3s ease;
+        }
+        
+        .help-icon:hover {
+            background: var(--accent-cyan);
+            color: var(--bg-primary);
+            transform: scale(1.1);
+        }
+        
+        /* Tooltip */
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 320px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            text-align: left;
+            border-radius: 12px;
+            padding: 15px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 135%;
+            left: 50%;
+            margin-left: -160px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+            line-height: 1.6;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+        }
+        
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -6px;
+            border-width: 6px;
+            border-style: solid;
+            border-color: var(--bg-secondary) transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        /* Metric */
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: var(--text-secondary);
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            color: var(--text-primary);
+            font-weight: 700;
+        }
+        
+        /* Score Bar */
+        .score-bar-container {
+            margin-bottom: 20px;
+        }
+        
+        .score-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .score-bar {
+            height: 12px;
+            background: var(--bg-secondary);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .score-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-cyan), var(--accent-purple));
+            border-radius: 20px;
+            transition: width 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 8px;
+            font-size: 0.75em;
+            font-weight: 700;
+        }
+        
+        .score-positive {
+            background: linear-gradient(90deg, var(--success), var(--accent-cyan));
+        }
+        
+        .score-negative {
+            background: linear-gradient(90deg, var(--danger), var(--accent-pink));
+        }
+        
+        /* List Styles */
+        .signals-list {
+            list-style: none;
+        }
+        
+        .signals-list li {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .signals-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .risk-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px;
+            background: rgba(255, 217, 61, 0.05);
+            border-left: 3px solid var(--warning);
+            border-radius: 8px;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        /* Strike Prices */
+        .strike-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--bg-secondary);
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+        
+        .strike-price {
+            font-size: 1.2em;
+            font-weight: 700;
+            color: var(--accent-cyan);
+        }
+        
+        .strike-label {
+            font-size: 0.85em;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Disclaimer */
+        .disclaimer {
+            background: rgba(255, 217, 61, 0.1);
+            border: 1px solid var(--warning);
+            border-radius: 12px;
+            padding: 20px;
+            margin-top: 30px;
+            text-align: center;
+        }
+        
+        .disclaimer p {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+        
+        /* Manage Position Form */
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .form-group label {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 2.5em;
+            }
+            
+            .tab-nav {
+                flex-direction: column;
+            }
+            
+            .tab-btn {
+                width: 100%;
+            }
+            
+            .grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .recommendation-header {
+                flex-direction: column;
+                text-align: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>OPTIONS TERMINAL</h1>
+            <p>Advanced Trading Analysis & Position Management</p>
+        </div>
+        
+        <!-- Tab Navigation -->
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('new-trade')">New Trade Analysis</button>
+            <button class="tab-btn" onclick="switchTab('manage-position')">Manage Position</button>
+        </div>
+        
+        <!-- New Trade Tab -->
+        <div id="new-trade" class="tab-content active">
+            <div class="glass-card">
+                <div class="input-group">
+                    <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., AAPL, TSLA, NVDA)" maxlength="10">
+                    <button class="btn-primary" id="analyzeBtn" onclick="analyzeTicker()">Analyze</button>
+                </div>
+            </div>
+            
+            <div class="loading" id="loadingBox">
+                <div class="spinner"></div>
+                <p style="color: var(--text-secondary); font-size: 1.1em;">Analyzing market data...</p>
+            </div>
+            
+            <div class="error-message" id="errorBox"></div>
+            
+            <div class="results" id="resultsBox">
+                <!-- Results will be populated by JavaScript -->
+            </div>
+        </div>
+        
+        <!-- Manage Position Tab -->
+        <div id="manage-position" class="tab-content">
+            <div class="glass-card">
+                <h2 style="margin-bottom: 25px; color: var(--accent-cyan);">Position Details</h2>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ticker Symbol</label>
+                        <input type="text" id="positionTicker" placeholder="AAPL" maxlength="10">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Position Type</label>
+                        <select id="positionType">
+                            <option value="call">Call</option>
+                            <option value="put">Put</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Strike Price</label>
+                        <input type="number" id="strikePrice" placeholder="150.00" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Premium Paid</label>
+                        <input type="number" id="premiumPaid" placeholder="3.50" step="0.01">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Contracts</label>
+                        <input type="number" id="contracts" placeholder="1" min="1" value="1">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entry Date</label>
+                        <input type="date" id="entryDate">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>Expiration Date</label>
+                        <input type="date" id="expirationDate">
+                    </div>
+                </div>
+                
+                <button class="btn-primary" id="analyzePositionBtn" onclick="analyzePosition()">Analyze Position</button>
+            </div>
+            
+            <div class="loading" id="loadingBoxPosition">
+                <div class="spinner"></div>
+                <p style="color: var(--text-secondary); font-size: 1.1em;">Analyzing your position...</p>
+            </div>
+            
+            <div class="error-message" id="errorBoxPosition"></div>
+            
+            <div class="results" id="resultsBoxPosition">
+                <!-- Position analysis results will be populated here -->
+            </div>
+        </div>
+        
+        <div class="disclaimer">
+            <p><strong>Disclaimer:</strong> This tool provides analysis based on technical indicators, sentiment data, and market conditions. 
+            It is not financial advice. Options trading involves significant risk. Always do your own research and consult with a financial advisor.</p>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active from all buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabName).classList.add('active');
+            
+            // Activate button
+            event.target.classList.add('active');
+        }
+        
+        // Enter key listener for ticker input
+        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzeTicker();
+            }
+        });
+        
+        // Analyze new trade
+        async function analyzeTicker() {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            
+            if (!ticker) {
+                showError('Please enter a ticker symbol', 'errorBox');
+                return;
+            }
+            
+            // Hide previous results and errors
+            document.getElementById('resultsBox').classList.remove('active');
+            document.getElementById('errorBox').classList.remove('active');
+            
+            // Show loading
+            document.getElementById('loadingBox').classList.add('active');
+            document.getElementById('analyzeBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ticker: ticker })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error, 'errorBox');
+                } else {
+                    displayResults(data);
+                }
+            } catch (error) {
+                showError(error.message, 'errorBox');
+            } finally {
+                document.getElementById('loadingBox').classList.remove('active');
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+        
+        // Analyze existing position (placeholder for now)
+        async function analyzePosition() {
+            const ticker = document.getElementById('positionTicker').value.trim().toUpperCase();
+            const type = document.getElementById('positionType').value;
+            const strike = document.getElementById('strikePrice').value;
+            const premium = document.getElementById('premiumPaid').value;
+            const contracts = document.getElementById('contracts').value;
+            const entryDate = document.getElementById('entryDate').value;
+            const expirationDate = document.getElementById('expirationDate').value;
+            
+            if (!ticker || !strike || !premium || !entryDate || !expirationDate) {
+                showError('Please fill in all required fields', 'errorBoxPosition');
+                return;
+            }
+            
+            // Hide previous results
+            document.getElementById('resultsBoxPosition').classList.remove('active');
+            document.getElementById('errorBoxPosition').classList.remove('active');
+            
+            // Show loading
+            document.getElementById('loadingBoxPosition').classList.add('active');
+            document.getElementById('analyzePositionBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/analyze-position', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        ticker: ticker,
+                        type: type,
+                        strike: parseFloat(strike),
+                        premium: parseFloat(premium),
+                        contracts: parseInt(contracts),
+                        entry_date: entryDate,
+                        expiration_date: expirationDate
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.error) {
+                    showError(data.error, 'errorBoxPosition');
+                } else {
+                    displayPositionResults(data);
+                }
+            } catch (error) {
+                showError(error.message, 'errorBoxPosition');
+            } finally {
+                document.getElementById('loadingBoxPosition').classList.remove('active');
+                document.getElementById('analyzePositionBtn').disabled = false;
+            }
+        }
+        
+        function showError(message, elementId) {
+            const errorBox = document.getElementById(elementId);
+            errorBox.textContent = message;
+            errorBox.classList.add('active');
+        }
+        
+        function displayResults(data) {
+            const resultsBox = document.getElementById('resultsBox');
+            
+            // Confidence indicator
+            const confidence = data.confidence * 100;
+            let indicator = '';
+            if (confidence >= 75) {
+                indicator = '<span class="indicator indicator-green"></span>';
+            } else if (confidence >= 50) {
+                indicator = '<span class="indicator indicator-yellow"></span>';
+            } else {
+                indicator = '<span class="indicator indicator-red"></span>';
+            }
+            
+            resultsBox.innerHTML = `
+                <div class="recommendation-header">
+                    <div class="ticker-price">${data.ticker} - $${data.current_price.toFixed(2)}</div>
+                    <div class="recommendation-badge badge-${data.recommendation.toLowerCase()}">${data.recommendation}</div>
+                    <div class="confidence">
+                        ${indicator}
+                        <span>${data.confidence_label} Confidence (${confidence.toFixed(0)}%)</span>
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">
+                                <strong>Confidence Score:</strong><br>
+                                • High (75-100%): Strong signals align<br>
+                                • Medium (50-75%): Mixed signals<br>
+                                • Low (0-50%): Weak or conflicting signals
+                            </span>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="grid">
+                    <div class="card">
+                        <h3>
+                            Strike Prices
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Strike Price:</strong> The price at which you can buy (call) or sell (put) the stock.<br><br>
+                                    <strong>ITM:</strong> Already profitable. Higher premium, lower risk.<br>
+                                    <strong>ATM:</strong> Strike ≈ current price. Balanced risk/reward.<br>
+                                    <strong>OTM:</strong> Cheaper, needs bigger move. Higher risk/reward.
+                                </span>
+                            </span>
+                        </h3>
+                        <p style="color: var(--text-secondary); margin-bottom: 15px;">${data.strike_prices.recommended}</p>
+                        ${data.strike_prices.strikes.map(s => `
+                            <div class="strike-item">
+                                <span class="strike-price">$${s.price.toFixed(2)}</span>
+                                <span class="strike-label">${s.label}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="card">
+                        <h3>
+                            Expiration
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Expiration:</strong> Options expire worthless if not profitable by this date.<br><br>
+                                    • Short-term (1-2 weeks): Cheaper but risky<br>
+                                    • Medium-term (1-2 months): Most common<br>
+                                    • Long-term (3+ months): More expensive, more time
+                                </span>
+                            </span>
+                        </h3>
+                        <div class="metric">
+                            <span class="metric-label">Recommended:</span>
+                            <span class="metric-value">${data.expiration.recommended}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Date Range:</span>
+                            <span class="metric-value">${data.expiration.min_date} to ${data.expiration.max_date}</span>
+                        </div>
+                        <p style="margin-top: 15px; color: var(--text-secondary); font-size: 0.9em;">${data.expiration.reason}</p>
+                    </div>
+                    
+                    <div class="card">
+                        <h3>
+                            Options Metrics
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Implied Volatility:</strong> Expected price swings. Higher = more expensive options.<br><br>
+                                    <strong>News:</strong> Recent news volume affects volatility.<br><br>
+                                    <strong>Earnings:</strong> Stocks make big moves around earnings.
+                                </span>
+                            </span>
+                        </h3>
+                        <div class="metric">
+                            <span class="metric-label">Implied Volatility:</span>
+                            <span class="metric-value">${data.implied_volatility > 0 ? data.implied_volatility.toFixed(1) + '%' : 'N/A'}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">News Articles:</span>
+                            <span class="metric-value">${data.news_count}</span>
+                        </div>
+                        ${data.earnings_date ? `
+                        <div class="metric">
+                            <span class="metric-label">Next Earnings:</span>
+                            <span class="metric-value">${data.earnings_date}</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>
+                        Risk Factors
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">
+                                <strong>Risk Factors:</strong> Warnings about conditions that could make this trade riskier.<br><br>
+                                Pay attention to: High volatility, low volume, upcoming events, conflicting signals.
+                            </span>
+                        </span>
+                    </h3>
+                    ${data.risk_factors.map(r => `
+                        <div class="risk-item">
+                            <span class="indicator indicator-yellow"></span>${r}
+                        </div>
+                    `).join('')}
+                </div>
+                
+                <div class="card">
+                    <h3>
+                        Component Scores
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">
+                                <strong>Technical:</strong> Chart patterns (RSI, MACD, Bollinger Bands)<br>
+                                <strong>Sentiment:</strong> News and social media mood<br>
+                                <strong>Fundamental:</strong> Company financials (P/E, revenue, margins)<br>
+                                <strong>Options:</strong> Put-Call ratio, Greeks, volume
+                            </span>
+                        </span>
+                    </h3>
+                    
+                    <div class="score-bar-container">
+                        <div class="score-label">
+                            <span>Technical Analysis</span>
+                            <span id="techScore">${data.component_scores.technical.toFixed(2)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill ${data.component_scores.technical >= 0 ? 'score-positive' : 'score-negative'}" 
+                                 style="width: ${Math.min(Math.abs(data.component_scores.technical) * 10, 100)}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-bar-container">
+                        <div class="score-label">
+                            <span>Sentiment Analysis</span>
+                            <span id="sentScore">${data.component_scores.sentiment.toFixed(2)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill ${data.component_scores.sentiment >= 0 ? 'score-positive' : 'score-negative'}" 
+                                 style="width: ${Math.min(Math.abs(data.component_scores.sentiment) * 10, 100)}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-bar-container">
+                        <div class="score-label">
+                            <span>Fundamental Analysis</span>
+                            <span id="fundScore">${data.component_scores.fundamental.toFixed(2)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill ${data.component_scores.fundamental >= 0 ? 'score-positive' : 'score-negative'}" 
+                                 style="width: ${Math.min(Math.abs(data.component_scores.fundamental) * 10, 100)}%"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="score-bar-container">
+                        <div class="score-label">
+                            <span>Options Market</span>
+                            <span id="optScore">${data.component_scores.options.toFixed(2)}</span>
+                        </div>
+                        <div class="score-bar">
+                            <div class="score-fill ${data.component_scores.options >= 0 ? 'score-positive' : 'score-negative'}" 
+                                 style="width: ${Math.min(Math.abs(data.component_scores.options) * 10, 100)}%"></div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h3>Analysis Signals</h3>
+                    <ul class="signals-list">
+                        ${data.signals.map(s => {
+                            let indicatorClass = 'indicator-green';
+                            if (s.toLowerCase().includes('bearish') || s.toLowerCase().includes('negative') || 
+                                s.toLowerCase().includes('weak') || s.toLowerCase().includes('declining')) {
+                                indicatorClass = 'indicator-red';
+                            } else if (s.toLowerCase().includes('neutral') || s.toLowerCase().includes('mixed') || 
+                                       s.toLowerCase().includes('moderate')) {
+                                indicatorClass = 'indicator-yellow';
+                            }
+                            return `<li><span class="indicator ${indicatorClass}"></span>${s}</li>`;
+                        }).join('')}
+                    </ul>
+                </div>
+            `;
+            
+            resultsBox.classList.add('active');
+            resultsBox.scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function displayPositionResults(data) {
+            const resultsBox = document.getElementById('resultsBoxPosition');
+            
+            // Status indicator
+            let statusColor = 'var(--success)';
+            let statusIcon = '🟢';
+            if (data.position_status === 'critical') {
+                statusColor = 'var(--danger)';
+                statusIcon = '🔴';
+            } else if (data.position_status === 'urgent') {
+                statusColor = 'var(--warning)';
+                statusIcon = '🟡';
+            } else if (data.position_status === 'watch') {
+                statusColor = 'var(--warning)';
+                statusIcon = '🟡';
+            }
+            
+            // P&L color
+            const pnlColor = data.pnl >= 0 ? 'var(--success)' : 'var(--danger)';
+            const pnlSign = data.pnl >= 0 ? '+' : '';
+            
+            resultsBox.innerHTML = `
+                <!-- Position Status Header -->
+                <div class="recommendation-header" style="background: linear-gradient(135deg, rgba(${data.pnl >= 0 ? '0, 255, 136' : '255, 56, 100'}, 0.1), rgba(0, 240, 255, 0.1));">
+                    <div>
+                        <div class="ticker-price">${data.ticker} ${data.position_type}</div>
+                        <div style="font-size: 0.9em; color: var(--text-secondary); margin-top: 5px;">
+                            Strike: $${data.strike_price.toFixed(2)} | Exp: ${data.expiration_date}
+                        </div>
+                    </div>
+                    <div style="text-align: center;">
+                        <div style="font-size: 2.5em; font-weight: 800; color: ${pnlColor};">
+                            ${pnlSign}$${data.pnl.toFixed(0)}
+                        </div>
+                        <div style="font-size: 1.2em; color: ${pnlColor}; font-weight: 600;">
+                            ${pnlSign}${data.pnl_percent.toFixed(1)}%
+                        </div>
+                    </div>
+                    <div style="text-align: right;">
+                        <div style="font-size: 1.1em; color: var(--text-secondary);">Days to Exp</div>
+                        <div style="font-size: 2em; font-weight: 700;">${data.days_to_expiration}</div>
+                    </div>
+                </div>
+                
+                <!-- Recommendation Card -->
+                <div class="card" style="background: linear-gradient(135deg, rgba(0, 240, 255, 0.05), rgba(189, 0, 255, 0.05)); border: 2px solid var(--accent-cyan);">
+                    <h3 style="font-size: 1.8em; margin-bottom: 15px;">
+                        ${statusIcon} Recommendation: ${data.recommendation.action}
+                    </h3>
+                    <div style="background: var(--bg-secondary); padding: 20px; border-radius: 12px; margin-bottom: 15px;">
+                        <div style="font-size: 1.1em; line-height: 1.6; color: var(--text-primary);">
+                            ${data.recommendation.reason}
+                        </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; padding: 15px; background: rgba(0, 240, 255, 0.1); border-radius: 10px;">
+                        <span style="color: var(--text-secondary);">Confidence Level</span>
+                        <span style="font-size: 1.3em; font-weight: 700; color: var(--accent-cyan);">${data.recommendation.confidence}%</span>
+                    </div>
+                </div>
+                
+                <div class="grid">
+                    <!-- Position Details -->
+                    <div class="card">
+                        <h3>Position Details</h3>
+                        <div class="metric">
+                            <span class="metric-label">Current Price:</span>
+                            <span class="metric-value">$${data.current_price.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Strike Price:</span>
+                            <span class="metric-value">$${data.strike_price.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Breakeven:</span>
+                            <span class="metric-value">$${data.breakeven.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Premium Paid:</span>
+                            <span class="metric-value">$${data.premium_paid.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Contracts:</span>
+                            <span class="metric-value">${data.contracts}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Cost Basis:</span>
+                            <span class="metric-value">$${data.cost_basis.toFixed(0)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Current Value:</span>
+                            <span class="metric-value" style="color: ${pnlColor};">$${data.current_value.toFixed(0)}</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Greeks -->
+                    <div class="card">
+                        <h3>
+                            Option Greeks
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Delta:</strong> Price change per $1 stock move<br>
+                                    <strong>Theta:</strong> Daily time decay ($ lost per day)<br>
+                                    <strong>Vega:</strong> Price change per 1% IV change<br>
+                                    <strong>Gamma:</strong> Rate of Delta change
+                                </span>
+                            </span>
+                        </h3>
+                        <div class="metric">
+                            <span class="metric-label">Delta:</span>
+                            <span class="metric-value">${data.greeks.delta.toFixed(3)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Theta (Daily Decay):</span>
+                            <span class="metric-value" style="color: var(--danger);">-$${Math.abs(data.greeks.theta).toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Vega:</span>
+                            <span class="metric-value">${data.greeks.vega.toFixed(2)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Gamma:</span>
+                            <span class="metric-value">${data.greeks.gamma.toFixed(4)}</span>
+                        </div>
+                        <div style="margin-top: 15px; padding: 12px; background: rgba(255, 56, 100, 0.1); border-radius: 8px;">
+                            <div style="font-size: 0.9em; color: var(--text-secondary);">Weekly Time Decay</div>
+                            <div style="font-size: 1.3em; font-weight: 700; color: var(--danger);">
+                                -$${(Math.abs(data.greeks.theta) * 7).toFixed(0)}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Market Context -->
+                    <div class="card">
+                        <h3>Market Context</h3>
+                        <div class="metric">
+                            <span class="metric-label">Implied Volatility:</span>
+                            <span class="metric-value">${data.current_iv.toFixed(1)}%</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Probability of Profit:</span>
+                            <span class="metric-value" style="color: ${data.prob_profit > 50 ? 'var(--success)' : 'var(--danger)'};">
+                                ${data.prob_profit.toFixed(1)}%
+                            </span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Days Held:</span>
+                            <span class="metric-value">${data.days_held}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Days Remaining:</span>
+                            <span class="metric-value">${data.days_to_expiration}</span>
+                        </div>
+                        ${data.earnings_date ? `
+                        <div class="metric">
+                            <span class="metric-label">Next Earnings:</span>
+                            <span class="metric-value">${data.earnings_date}</span>
+                        </div>
+                        ${data.days_to_earnings !== null ? `
+                        <div style="margin-top: 10px; padding: 12px; background: rgba(255, 217, 61, 0.1); border-radius: 8px; border-left: 3px solid var(--warning);">
+                            <div style="font-weight: 600;">⚠️ Earnings in ${data.days_to_earnings} days</div>
+                        </div>
+                        ` : ''}
+                        ` : ''}
+                    </div>
+                </div>
+                
+                <!-- Action Plan -->
+                <div class="card">
+                    <h3>📋 Action Plan</h3>
+                    ${data.action_plan.map(item => {
+                        let borderColor = 'var(--accent-cyan)';
+                        let bgColor = 'rgba(0, 240, 255, 0.05)';
+                        if (item.priority === 'high') {
+                            borderColor = 'var(--danger)';
+                            bgColor = 'rgba(255, 56, 100, 0.05)';
+                        } else if (item.priority === 'medium') {
+                            borderColor = 'var(--warning)';
+                            bgColor = 'rgba(255, 217, 61, 0.05)';
+                        }
+                        return `
+                        <div style="margin-bottom: 15px; padding: 15px; background: ${bgColor}; border-left: 4px solid ${borderColor}; border-radius: 8px;">
+                            <div style="font-weight: 700; font-size: 1.05em; margin-bottom: 8px; color: var(--text-primary);">
+                                ${item.action}
+                            </div>
+                            <div style="color: var(--text-secondary); line-height: 1.5;">
+                                ${item.details}
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+                
+                <!-- Recent News -->
+                ${data.recent_news && data.recent_news.length > 0 ? `
+                <div class="card">
+                    <h3>📰 Recent News (${data.news_count} articles)</h3>
+                    ${data.recent_news.map(news => `
+                        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 10px;">
+                            <div style="font-weight: 600; margin-bottom: 5px;">${news.title}</div>
+                            <div style="font-size: 0.85em; color: var(--text-secondary);">
+                                Sentiment: ${news.sentiment > 0 ? '🟢 Positive' : news.sentiment < 0 ? '🔴 Negative' : '🟡 Neutral'} 
+                                (${news.sentiment.toFixed(2)})
+                            </div>
+                        </div>
+                    `).join('')}
+                    <div style="margin-top: 15px; padding: 15px; background: rgba(0, 240, 255, 0.1); border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="color: var(--text-secondary);">Overall Sentiment Score:</span>
+                            <span style="font-size: 1.3em; font-weight: 700; color: ${data.sentiment_score > 0 ? 'var(--success)' : data.sentiment_score < 0 ? 'var(--danger)' : 'var(--warning)'};">
+                                ${data.sentiment_score.toFixed(2)}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Alternative Strategies -->
+                <div class="card">
+                    <h3>🔄 Alternative Strategies</h3>
+                    ${data.alternatives.map((alt, idx) => `
+                        <div style="margin-bottom: 20px; padding: 20px; background: var(--bg-secondary); border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.08);">
+                            <div style="font-size: 1.2em; font-weight: 700; margin-bottom: 10px; color: var(--accent-cyan);">
+                                ${idx + 1}. ${alt.strategy}
+                            </div>
+                            <div style="margin-bottom: 10px; color: var(--text-primary);">
+                                ${alt.description}
+                            </div>
+                            <div style="margin-bottom: 8px;">
+                                <span style="color: var(--text-secondary);">Cost: </span>
+                                <span style="font-weight: 600;">${alt.cost}</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px;">
+                                <div style="padding: 10px; background: rgba(0, 255, 136, 0.1); border-radius: 8px;">
+                                    <div style="font-weight: 600; color: var(--success); margin-bottom: 5px;">✓ Pros</div>
+                                    <div style="font-size: 0.9em; color: var(--text-secondary);">${alt.pros}</div>
+                                </div>
+                                <div style="padding: 10px; background: rgba(255, 56, 100, 0.1); border-radius: 8px;">
+                                    <div style="font-weight: 600; color: var(--danger); margin-bottom: 5px;">✗ Cons</div>
+                                    <div style="font-size: 0.9em; color: var(--text-secondary);">${alt.cons}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+            `;
+            
+            resultsBox.classList.add('active');
+            resultsBox.scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

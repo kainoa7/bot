@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Options Terminal</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #0a0e27;
+            --bg-secondary: #12162d;
+            --bg-card: #1a1f3a;
+            --accent-cyan: #00f0ff;
+            --accent-purple: #bd00ff;
+            --accent-pink: #ff006e;
+            --text-primary: #ffffff;
+            --text-secondary: #8892b0;
+            --success: #00ff88;
+            --warning: #ffd93d;
+            --danger: #ff3864;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            padding: 0;
+            overflow-x: hidden;
+        }
+        
+        /* Animated background gradient */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(ellipse at top, rgba(0, 240, 255, 0.1), transparent),
+                        radial-gradient(ellipse at bottom, rgba(189, 0, 255, 0.1), transparent);
+            pointer-events: none;
+            z-index: 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+        
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+        
+        .search-box {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            margin-bottom: 30px;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        input[type="text"] {
+            flex: 1;
+            padding: 15px 20px;
+            font-size: 1.1em;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            outline: none;
+            transition: border 0.3s;
+            text-transform: uppercase;
+        }
+        
+        input[type="text"]:focus {
+            border-color: #667eea;
+        }
+        
+        button {
+            padding: 15px 40px;
+            font-size: 1.1em;
+            font-weight: bold;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .loading.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .results {
+            display: none;
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .results.active {
+            display: block;
+        }
+        
+        .error {
+            display: none;
+            background: #ff4757;
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .error.active {
+            display: block;
+        }
+        
+        .recommendation-header {
+            text-align: center;
+            padding: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+        
+        .ticker-price {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .recommendation-badge {
+            display: inline-block;
+            padding: 10px 30px;
+            font-size: 1.5em;
+            font-weight: bold;
+            border-radius: 50px;
+            margin: 10px 0;
+        }
+        
+        .badge-call {
+            background: #2ecc71;
+        }
+        
+        .badge-put {
+            background: #e74c3c;
+        }
+        
+        .badge-neutral {
+            background: #95a5a6;
+        }
+        
+        .confidence {
+            font-size: 1.2em;
+            margin-top: 10px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .card h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.3em;
+        }
+        
+        .strike-option {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            border: 2px solid #e0e0e0;
+        }
+        
+        .strike-price {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #667eea;
+        }
+        
+        .strike-label {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .score-bar {
+            background: #e0e0e0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+        
+        .score-fill {
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            transition: width 0.5s;
+        }
+        
+        .score-positive {
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+        }
+        
+        .score-negative {
+            background: linear-gradient(90deg, #e74c3c, #c0392b);
+        }
+        
+        .signals-list {
+            list-style: none;
+        }
+        
+        .signals-list li {
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .signals-list li:last-child {
+            border-bottom: none;
+        }
+        
+        .risk-item {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            margin-bottom: 8px;
+            border-left: 3px solid #e74c3c;
+        }
+        
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .metric:last-child {
+            border-bottom: none;
+        }
+        
+        .metric-label {
+            color: #666;
+        }
+        
+        .metric-value {
+            font-weight: bold;
+            color: #333;
+        }
+        
+        .disclaimer {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 10px;
+            padding: 20px;
+            margin-top: 30px;
+        }
+        
+        .disclaimer h4 {
+            color: #856404;
+            margin-bottom: 10px;
+        }
+        
+        .disclaimer p {
+            color: #856404;
+            line-height: 1.6;
+        }
+        
+        /* Help tooltips */
+        .help-icon {
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            background: #667eea;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 18px;
+            font-size: 12px;
+            font-weight: bold;
+            cursor: help;
+            margin-left: 5px;
+            position: relative;
+        }
+        
+        .help-icon:hover {
+            background: #764ba2;
+        }
+        
+        .tooltip {
+            position: relative;
+        }
+        
+        .tooltip .tooltip-text {
+            visibility: hidden;
+            width: 300px;
+            background-color: #333;
+            color: #fff;
+            text-align: left;
+            border-radius: 8px;
+            padding: 12px;
+            position: absolute;
+            z-index: 1000;
+            bottom: 125%;
+            left: 50%;
+            margin-left: -150px;
+            opacity: 0;
+            transition: opacity 0.3s;
+            font-size: 0.9em;
+            line-height: 1.4;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .tooltip .tooltip-text::after {
+            content: "";
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            margin-left: -5px;
+            border-width: 5px;
+            border-style: solid;
+            border-color: #333 transparent transparent transparent;
+        }
+        
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+        
+        .help-section {
+            background: #e8f4f8;
+            border-left: 4px solid #3498db;
+            padding: 15px;
+            margin-top: 15px;
+            border-radius: 5px;
+            font-size: 0.95em;
+        }
+        
+        .help-section strong {
+            color: #2c3e50;
+        }
+        
+        .indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 5px;
+        }
+        
+        .indicator-green { background: #2ecc71; }
+        .indicator-yellow { background: #f39c12; }
+        .indicator-red { background: #e74c3c; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Stock Options Trading Assistant</h1>
+            <p>AI-Powered Options Analysis & Recommendations</p>
+        </div>
+        
+        <div class="search-box">
+            <div class="input-group">
+                <input type="text" id="tickerInput" placeholder="Enter ticker symbol (e.g., AAPL, TSLA, NVDA)" maxlength="10">
+                <button id="analyzeBtn" onclick="analyzeTicker()">Analyze</button>
+            </div>
+        </div>
+        
+        <div class="error" id="errorBox"></div>
+        
+        <div class="loading" id="loadingBox">
+            <div class="spinner"></div>
+            <h3>Analyzing...</h3>
+            <p>Fetching market data and running analysis</p>
+        </div>
+        
+        <div class="results" id="resultsBox">
+            <div class="recommendation-header">
+                <div class="ticker-price" id="tickerPrice"></div>
+                <div class="recommendation-badge" id="recommendationBadge"></div>
+                <div class="confidence" id="confidenceText">
+                    <span class="tooltip">
+                        <span class="help-icon">?</span>
+                        <span class="tooltip-text">
+                            <strong>Confidence Score Explained:</strong><br>
+                            This shows how strongly our analysis supports the recommendation.<br><br>
+                            🟢 <strong>High (75-100%):</strong> Strong signals align<br>
+                            🟡 <strong>Medium (50-75%):</strong> Mixed signals, moderate certainty<br>
+                            🔴 <strong>Low (0-50%):</strong> Weak or conflicting signals<br><br>
+                            Based on: Technical indicators, sentiment analysis, fundamental metrics, and options data.
+                        </span>
+                    </span>
+                </div>
+            </div>
+            
+            <div class="grid">
+                <div class="card">
+                    <h3>💵 Strike Prices
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">
+                                <strong>What is a Strike Price?</strong><br>
+                                The price at which you can buy (call) or sell (put) the stock.<br><br>
+                                <strong>ITM (In-The-Money):</strong> Already profitable if exercised now. Higher premium, lower risk.<br><br>
+                                <strong>ATM (At-The-Money):</strong> Strike ≈ current price. Balanced risk/reward.<br><br>
+                                <strong>OTM (Out-The-Money):</strong> Cheaper premium, needs bigger move to profit. Higher risk, higher potential return.
+                            </span>
+                        </span>
+                    </h3>
+                    <p id="strikeStrategy"></p>
+                    <div id="strikesList"></div>
+                </div>
+                
+                <div class="card">
+                    <h3>📅 Expiration
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">
+                                <strong>Why Expiration Matters:</strong><br>
+                                Options expire worthless if not profitable by this date.<br><br>
+                                <strong>Short-term (1-2 weeks):</strong> Cheaper, but need quick moves. Higher risk.<br><br>
+                                <strong>Medium-term (1-2 months):</strong> Balanced approach, most common.<br><br>
+                                <strong>Long-term (3+ months):</strong> More expensive, but more time for stock to move your way.
+                            </span>
+                        </span>
+                    </h3>
+                    <div class="metric">
+                        <span class="metric-label">Recommended:</span>
+                        <span class="metric-value" id="expRecommended"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Date Range:</span>
+                        <span class="metric-value" id="expRange"></span>
+                    </div>
+                    <div style="margin-top: 15px; color: #666; font-size: 0.9em;" id="expReason"></div>
+                </div>
+                
+                <div class="card">
+                    <h3>📊 Options Metrics
+                        <span class="tooltip">
+                            <span class="help-icon">?</span>
+                            <span class="tooltip-text">
+                                <strong>Options Metrics Overview:</strong><br><br>
+                                <strong>Implied Volatility (IV):</strong> Expected price swings. Higher IV = bigger expected moves = more expensive options.<br><br>
+                                <strong>News Articles:</strong> Recent news volume. More news often means more volatility.<br><br>
+                                <strong>Earnings Date:</strong> Stocks often make big moves around earnings. Options can be risky (but profitable) during earnings.
+                            </span>
+                        </span>
+                    </h3>
+                    <div class="metric">
+                        <span class="metric-label">Implied Volatility:</span>
+                        <span class="metric-value" id="ivValue"></span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">News Articles:</span>
+                        <span class="metric-value" id="newsCount"></span>
+                    </div>
+                    <div class="metric" id="earningsMetric" style="display: none;">
+                        <span class="metric-label">Next Earnings:</span>
+                        <span class="metric-value" id="earningsDate"></span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3>⚠️ Risk Factors
+                    <span class="tooltip">
+                        <span class="help-icon">?</span>
+                        <span class="tooltip-text">
+                            <strong>Understanding Risk Factors:</strong><br>
+                            These are warnings about conditions that could make this trade riskier than normal.<br><br>
+                            Pay attention to: High volatility, low volume (harder to exit), upcoming events (earnings), conflicting signals.<br><br>
+                            More risk factors = higher chance of unexpected losses.
+                        </span>
+                    </span>
+                </h3>
+                <div id="risksList"></div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3>📈 Component Scores
+                    <span class="tooltip">
+                        <span class="help-icon">?</span>
+                        <span class="tooltip-text">
+                            <strong>How We Calculate Recommendations:</strong><br><br>
+                            <strong>Technical (Chart Patterns):</strong> RSI, MACD, Bollinger Bands - are charts bullish or bearish?<br><br>
+                            <strong>Sentiment (Market Mood):</strong> News headlines, social media - is the mood positive or negative?<br><br>
+                            <strong>Fundamental (Company Health):</strong> P/E ratio, earnings, revenue - is the company strong?<br><br>
+                            <strong>Options (Contract Data):</strong> Put-Call ratio, Greeks - what are options traders doing?<br><br>
+                            All combined = final recommendation!
+                        </span>
+                    </span>
+                </h3>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Technical Analysis
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Technical Analysis:</strong><br>
+                                    Studies price charts and patterns.<br><br>
+                                    <strong>RSI:</strong> Overbought (>70) = may fall, Oversold (<30) = may rise<br>
+                                    <strong>MACD:</strong> Positive = upward momentum<br>
+                                    <strong>Bollinger Bands:</strong> Price near upper = overbought, near lower = oversold
+                                </span>
+                            </span>
+                        </span>
+                        <span id="techScore"></span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill" id="techBar"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Sentiment Analysis
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Sentiment Analysis:</strong><br>
+                                    Analyzes news headlines and social media to gauge market mood.<br><br>
+                                    Positive sentiment = more likely to go up<br>
+                                    Negative sentiment = more likely to go down<br>
+                                    Neutral = no strong opinion from news
+                                </span>
+                            </span>
+                        </span>
+                        <span id="sentScore"></span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill" id="sentBar"></div>
+                    </div>
+                </div>
+                <div style="margin-bottom: 15px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Fundamental Analysis
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Fundamental Analysis:</strong><br>
+                                    Evaluates company's financial health.<br><br>
+                                    <strong>P/E Ratio:</strong> Price vs earnings - lower can mean undervalued<br>
+                                    <strong>Revenue Growth:</strong> Is company growing?<br>
+                                    <strong>Profit Margins:</strong> How profitable is the business?<br><br>
+                                    Strong fundamentals = healthier long-term prospects
+                                </span>
+                            </span>
+                        </span>
+                        <span id="fundScore"></span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill" id="fundBar"></div>
+                    </div>
+                </div>
+                <div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                        <span>Options Market
+                            <span class="tooltip">
+                                <span class="help-icon">?</span>
+                                <span class="tooltip-text">
+                                    <strong>Options Market Analysis:</strong><br>
+                                    What are other options traders doing?<br><br>
+                                    <strong>Put-Call Ratio:</strong> More calls = bullish, more puts = bearish<br>
+                                    <strong>Volume:</strong> High volume = easier to buy/sell<br>
+                                    <strong>Open Interest:</strong> Total active contracts - higher = more liquid<br>
+                                    <strong>Greeks:</strong> How option price changes with stock moves (Delta), time (Theta), volatility (Vega)
+                                </span>
+                            </span>
+                        </span>
+                        <span id="optScore"></span>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill" id="optBar"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card" style="margin-top: 20px;">
+                <h3>🔍 Analysis Signals</h3>
+                <ul class="signals-list" id="signalsList"></ul>
+            </div>
+            
+            <div class="disclaimer">
+                <h4>⚠️ Important Disclaimer</h4>
+                <p>This analysis is for educational purposes only and should not be considered financial advice. Options trading involves substantial risk and is not suitable for all investors. Always conduct your own research and consult with a licensed financial advisor before making investment decisions.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Allow Enter key to submit
+        document.getElementById('tickerInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                analyzeTicker();
+            }
+        });
+        
+        async function analyzeTicker() {
+            const ticker = document.getElementById('tickerInput').value.trim().toUpperCase();
+            
+            if (!ticker) {
+                showError('Please enter a ticker symbol');
+                return;
+            }
+            
+            // Hide previous results and errors
+            document.getElementById('resultsBox').classList.remove('active');
+            document.getElementById('errorBox').classList.remove('active');
+            
+            // Show loading
+            document.getElementById('loadingBox').classList.add('active');
+            document.getElementById('analyzeBtn').disabled = true;
+            
+            try {
+                const response = await fetch('/analyze', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ ticker: ticker })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Analysis failed');
+                }
+                
+                displayResults(data);
+                
+            } catch (error) {
+                showError(error.message);
+            } finally {
+                document.getElementById('loadingBox').classList.remove('active');
+                document.getElementById('analyzeBtn').disabled = false;
+            }
+        }
+        
+        function showError(message) {
+            const errorBox = document.getElementById('errorBox');
+            errorBox.textContent = message;
+            errorBox.classList.add('active');
+        }
+        
+        function displayResults(data) {
+            // Header
+            document.getElementById('tickerPrice').textContent = `${data.ticker} - $${data.current_price.toFixed(2)}`;
+            
+            const badge = document.getElementById('recommendationBadge');
+            badge.textContent = data.recommendation;
+            badge.className = 'recommendation-badge badge-' + data.recommendation.toLowerCase();
+            
+            // Confidence with visual indicator
+            const confidence = data.confidence * 100;
+            let indicator = '';
+            if (confidence >= 75) {
+                indicator = '<span class="indicator indicator-green"></span>';
+            } else if (confidence >= 50) {
+                indicator = '<span class="indicator indicator-yellow"></span>';
+            } else {
+                indicator = '<span class="indicator indicator-red"></span>';
+            }
+            
+            const confidenceElement = document.getElementById('confidenceText');
+            const helpIcon = confidenceElement.querySelector('.tooltip');
+            confidenceElement.innerHTML = 
+                `${indicator}${data.confidence_label} Confidence (${confidence.toFixed(0)}%)`;
+            confidenceElement.appendChild(helpIcon);
+            
+            // Strike Prices
+            document.getElementById('strikeStrategy').textContent = data.strike_prices.recommended;
+            const strikesList = document.getElementById('strikesList');
+            strikesList.innerHTML = data.strike_prices.strikes.map(s => `
+                <div class="strike-option">
+                    <div class="strike-price">$${s.price.toFixed(2)}</div>
+                    <div class="strike-label">${s.label}</div>
+                </div>
+            `).join('');
+            
+            // Expiration
+            document.getElementById('expRecommended').textContent = data.expiration.recommended;
+            document.getElementById('expRange').textContent = 
+                `${data.expiration.min_date} to ${data.expiration.max_date}`;
+            document.getElementById('expReason').textContent = data.expiration.reason;
+            
+            // Options Metrics
+            document.getElementById('ivValue').textContent = 
+                data.implied_volatility > 0 ? `${data.implied_volatility.toFixed(1)}%` : 'N/A';
+            document.getElementById('newsCount').textContent = data.news_count;
+            
+            if (data.earnings_date) {
+                document.getElementById('earningsMetric').style.display = 'flex';
+                document.getElementById('earningsDate').textContent = data.earnings_date;
+            }
+            
+            // Risk Factors with indicators
+            const risksList = document.getElementById('risksList');
+            risksList.innerHTML = data.risk_factors.map(r => `
+                <div class="risk-item">
+                    <span class="indicator indicator-yellow"></span>${r}
+                </div>
+            `).join('');
+            
+            // Component Scores
+            displayScore('tech', data.component_scores.technical);
+            displayScore('sent', data.component_scores.sentiment);
+            displayScore('fund', data.component_scores.fundamental);
+            displayScore('opt', data.component_scores.options);
+            
+            // Signals with color indicators
+            const signalsList = document.getElementById('signalsList');
+            signalsList.innerHTML = data.signals.map(s => {
+                let indicatorClass = 'indicator-green';
+                if (s.toLowerCase().includes('bearish') || s.toLowerCase().includes('negative') || 
+                    s.toLowerCase().includes('weak') || s.toLowerCase().includes('declining')) {
+                    indicatorClass = 'indicator-red';
+                } else if (s.toLowerCase().includes('neutral') || s.toLowerCase().includes('mixed') || 
+                           s.toLowerCase().includes('moderate')) {
+                    indicatorClass = 'indicator-yellow';
+                }
+                return `<li><span class="indicator ${indicatorClass}"></span>${s}</li>`;
+            }).join('');
+            
+            // Show results
+            document.getElementById('resultsBox').classList.add('active');
+            
+            // Scroll to results
+            document.getElementById('resultsBox').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function displayScore(prefix, value) {
+            const scoreText = document.getElementById(prefix + 'Score');
+            const scoreBar = document.getElementById(prefix + 'Bar');
+            
+            scoreText.textContent = value >= 0 ? `+${value.toFixed(2)}` : value.toFixed(2);
+            
+            const width = Math.abs(value) * 100;
+            const className = value >= 0 ? 'score-fill score-positive' : 'score-fill score-negative';
+            
+            scoreBar.className = className;
+            scoreBar.style.width = Math.min(width, 100) + '%';
+            scoreBar.textContent = value.toFixed(2);
+        }
+    </script>
+</body>
+</html>
