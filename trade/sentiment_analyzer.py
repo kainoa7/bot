@@ -3,6 +3,7 @@ Sentiment analysis for news articles
 """
 from textblob import TextBlob
 from typing import List, Dict
+from datetime import datetime, timedelta
 import config
 
 
@@ -142,6 +143,9 @@ class SentimentAnalyzer:
                 'score': 0,
                 'confidence': 0,
                 'reason': 'No news data available',
+                'overall_sentiment': 0,
+                'news_count': 0,
+                'headlines': [],
             }
         
         score = analysis['sentiment_score']
@@ -160,13 +164,175 @@ class SentimentAnalyzer:
             confidence = 0.3
             reason = "Mixed or neutral sentiment"
         
+        # Get headlines with sentiment
+        headlines = []
+        for article in analysis.get('article_details', [])[:7]:
+            headlines.append({
+                'title': article['title'],
+                'sentiment': article['sentiment'],
+                'label': article['label']
+            })
+        
         return {
             'signal': signal,
             'score': score,  # -1 to 1
             'confidence': confidence,
             'reason': reason,
             'articles_count': analysis['articles_analyzed'],
+            'overall_sentiment': score,
+            'news_count': analysis['articles_analyzed'],
+            'headlines': headlines,
         }
+    
+    def get_news_momentum(self) -> Dict:
+        """
+        Calculate news momentum trend over time
+        
+        Returns:
+            Dictionary with momentum analysis
+        """
+        if not self.articles:
+            return {
+                'trend': 'NEUTRAL',
+                'momentum_score': 0,
+                'recent_sentiment': 0,
+                'older_sentiment': 0,
+            }
+        
+        # Split articles into recent (last 24h) and older
+        now = datetime.now()
+        recent_articles = []
+        older_articles = []
+        
+        for article in self.articles:
+            pub_time = article.get('published_at', '')
+            if not pub_time:
+                older_articles.append(article)
+                continue
+            
+            try:
+                # Try parsing ISO format
+                if 'T' in pub_time:
+                    pub_dt = datetime.fromisoformat(pub_time.replace('Z', '+00:00'))
+                else:
+                    pub_dt = datetime.fromtimestamp(int(pub_time))
+                
+                # Check if within last 24 hours
+                if (now - pub_dt.replace(tzinfo=None)).total_seconds() < 86400:
+                    recent_articles.append(article)
+                else:
+                    older_articles.append(article)
+            except:
+                older_articles.append(article)
+        
+        # Calculate sentiment for each group
+        recent_sentiments = [self.analyze_article(a)['sentiment'] for a in recent_articles]
+        older_sentiments = [self.analyze_article(a)['sentiment'] for a in older_articles]
+        
+        recent_avg = sum(recent_sentiments) / len(recent_sentiments) if recent_sentiments else 0
+        older_avg = sum(older_sentiments) / len(older_sentiments) if older_sentiments else 0
+        
+        momentum_score = recent_avg - older_avg
+        
+        if momentum_score > 0.1:
+            trend = 'IMPROVING'
+        elif momentum_score < -0.1:
+            trend = 'DETERIORATING'
+        else:
+            trend = 'STABLE'
+        
+        return {
+            'trend': trend,
+            'momentum_score': momentum_score,
+            'recent_sentiment': recent_avg,
+            'older_sentiment': older_avg,
+            'recent_count': len(recent_articles),
+            'older_count': len(older_articles),
+        }
+    
+    def get_breaking_news(self, hours: int = 24) -> List[Dict]:
+        """
+        Get breaking news from the last N hours
+        
+        Args:
+            hours: Number of hours to look back
+            
+        Returns:
+            List of breaking news articles with sentiment
+        """
+        if not self.articles:
+            return []
+        
+        now = datetime.now()
+        breaking = []
+        
+        for article in self.articles:
+            pub_time = article.get('published_at', '')
+            if not pub_time:
+                continue
+            
+            try:
+                if 'T' in pub_time:
+                    pub_dt = datetime.fromisoformat(pub_time.replace('Z', '+00:00'))
+                else:
+                    pub_dt = datetime.fromtimestamp(int(pub_time))
+                
+                hours_ago = (now - pub_dt.replace(tzinfo=None)).total_seconds() / 3600
+                
+                if hours_ago <= hours:
+                    analyzed = self.analyze_article(article)
+                    breaking.append({
+                        'title': article.get('title', ''),
+                        'description': article.get('description', ''),
+                        'url': article.get('url', ''),
+                        'sentiment': analyzed['sentiment'],
+                        'label': analyzed['label'],
+                        'hours_ago': round(hours_ago, 1),
+                    })
+            except:
+                continue
+        
+        # Sort by most recent
+        breaking.sort(key=lambda x: x.get('hours_ago', 999))
+        return breaking[:5]  # Top 5 breaking news
+    
+    def get_critical_news(self) -> List[Dict]:
+        """
+        Identify critical news (earnings, FDA, lawsuits, etc.)
+        
+        Returns:
+            List of critical news articles
+        """
+        if not self.articles:
+            return []
+        
+        critical_keywords = [
+            'earnings', 'fda', 'approval', 'lawsuit', 'settlement', 'merger', 'acquisition',
+            'bankruptcy', 'delisting', 'recall', 'investigation', 'subpoena', 'ceo', 'cfo',
+            'resignation', 'guidance', 'forecast', 'downgrade', 'upgrade', 'rating'
+        ]
+        
+        critical = []
+        for article in self.articles:
+            title = article.get('title', '').lower()
+            description = article.get('description', '').lower()
+            text = f"{title} {description}"
+            
+            # Check for critical keywords
+            for keyword in critical_keywords:
+                if keyword in text:
+                    analyzed = self.analyze_article(article)
+                    critical.append({
+                        'title': article.get('title', ''),
+                        'description': article.get('description', ''),
+                        'url': article.get('url', ''),
+                        'sentiment': analyzed['sentiment'],
+                        'label': analyzed['label'],
+                        'keyword': keyword,
+                    })
+                    break
+        
+        return critical[:7]  # Top 7 critical news
 
 
 if __name__ == "__main__":

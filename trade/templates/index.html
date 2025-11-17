@@ -644,6 +644,7 @@
         <div class="tab-nav">
             <button class="tab-btn active" onclick="switchTab('new-trade')">New Trade Analysis</button>
             <button class="tab-btn" onclick="switchTab('manage-position')">Manage Position</button>
+            <button class="tab-btn" onclick="switchTab('dashboard')">My Dashboard</button>
         </div>
         
         <!-- New Trade Tab -->
@@ -690,17 +691,24 @@
                 <div class="form-row">
                     <div class="form-group">
                         <label>Strike Price</label>
-                        <input type="number" id="strikePrice" placeholder="150.00" step="0.01">
+                        <input type="number" id="strikePrice" placeholder="150.00" step="0.01" oninput="calculateBreakeven()">
                     </div>
                     
                     <div class="form-group">
                         <label>Premium Paid</label>
-                        <input type="number" id="premiumPaid" placeholder="3.50" step="0.01">
+                        <input type="number" id="premiumPaid" placeholder="3.50" step="0.01" oninput="calculateBreakeven()">
                     </div>
                     
                     <div class="form-group">
                         <label>Contracts</label>
                         <input type="number" id="contracts" placeholder="1" min="1" value="1">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Breakeven Price</label>
+                        <input type="text" id="breakevenPrice" placeholder="Calculated automatically" readonly style="background: var(--bg-secondary); opacity: 0.7; cursor: not-allowed;">
                     </div>
                 </div>
                 
@@ -716,7 +724,22 @@
                     </div>
                 </div>
                 
-                <button class="btn-primary" id="analyzePositionBtn" onclick="analyzePosition()">Analyze Position</button>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Entry Price (Optional)</label>
+                        <input type="number" id="entryPrice" placeholder="Stock price when entered" step="0.01">
+                    </div>
+                    
+                    <div class="form-group" style="grid-column: span 2;">
+                        <label>Notes (Optional)</label>
+                        <input type="text" id="positionNotes" placeholder="Your trade thesis or notes">
+                    </div>
+                </div>
+                
+                <div style="display: flex; gap: 15px;">
+                    <button class="btn-primary" id="analyzePositionBtn" onclick="analyzePosition()" style="flex: 1;">Analyze Position</button>
+                    <button class="btn-primary" onclick="saveCurrentPosition()" style="flex: 1; background: linear-gradient(135deg, var(--success), #00cc70);">💾 Save Position</button>
+                </div>
             </div>
             
             <div class="loading" id="loadingBoxPosition">
@@ -728,6 +751,40 @@
             
             <div class="results" id="resultsBoxPosition">
                 <!-- Position analysis results will be populated here -->
+            </div>
+        </div>
+        
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content">
+            <div class="glass-card">
+                <h2 style="margin-bottom: 25px; color: var(--accent-cyan);">Personal Financial Dashboard</h2>
+                
+                <!-- Summary Cards -->
+                <div class="grid" id="dashboardSummary" style="margin-bottom: 30px;">
+                    <!-- Will be populated by JavaScript -->
+                </div>
+                
+                <!-- Positions Section -->
+                <div style="margin-bottom: 40px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--accent-cyan); font-size: 1.5em;">Positions</h3>
+                        <button class="btn-primary" onclick="showAddPositionModal()" style="width: auto; padding: 12px 30px;">+ Add Position</button>
+                    </div>
+                    <div id="positionsList" class="grid">
+                        <!-- Positions will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Accounts Section -->
+                <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h3 style="color: var(--accent-cyan); font-size: 1.5em;">Accounts</h3>
+                        <button class="btn-primary" onclick="showAddAccountModal()" style="width: auto; padding: 12px 30px;">+ Add Account</button>
+                    </div>
+                    <div id="accountsList" class="grid">
+                        <!-- Accounts will be loaded here -->
+                    </div>
+                </div>
             </div>
         </div>
         
@@ -754,8 +811,40 @@
             document.getElementById(tabName).classList.add('active');
             
             // Activate button
-            event.target.classList.add('active');
+            if (event && event.target) {
+                event.target.classList.add('active');
+            }
+            
+            // Load dashboard if switching to dashboard tab
+            if (tabName === 'dashboard') {
+                loadDashboard();
+            }
         }
+        
+        // Calculate breakeven price
+        function calculateBreakeven() {
+            const strike = parseFloat(document.getElementById('strikePrice').value);
+            const premium = parseFloat(document.getElementById('premiumPaid').value);
+            const positionType = document.getElementById('positionType').value;
+            const breakevenField = document.getElementById('breakevenPrice');
+            
+            if (strike && premium && positionType) {
+                let breakeven;
+                if (positionType === 'call') {
+                    breakeven = strike + premium;
+                } else {
+                    breakeven = strike - premium;
+                }
+                breakevenField.value = `$${breakeven.toFixed(2)}`;
+                breakevenField.style.opacity = '1';
+            } else {
+                breakevenField.value = '';
+                breakevenField.style.opacity = '0.7';
+            }
+        }
+        
+        // Update breakeven when position type changes
+        document.getElementById('positionType').addEventListener('change', calculateBreakeven);
         
         // Enter key listener for ticker input
         document.getElementById('tickerInput').addEventListener('keypress', function(e) {
@@ -841,7 +930,9 @@
                         premium: parseFloat(premium),
                         contracts: parseInt(contracts),
                         entry_date: entryDate,
-                        expiration_date: expirationDate
+                        expiration_date: expirationDate,
+                        entry_price: document.getElementById('entryPrice').value ? parseFloat(document.getElementById('entryPrice').value) : null,
+                        notes: document.getElementById('positionNotes').value || null
                     })
                 });
                 
@@ -1267,25 +1358,400 @@
                     }).join('')}
                 </div>
                 
-                <!-- Recent News -->
-                ${data.recent_news && data.recent_news.length > 0 ? `
+                <!-- Enhanced News Intelligence Card -->
+                ${data.news_analysis ? `
                 <div class="card">
-                    <h3>📰 Recent News (${data.news_count} articles)</h3>
-                    ${data.recent_news.map(news => `
-                        <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 10px;">
-                            <div style="font-weight: 600; margin-bottom: 5px;">${news.title}</div>
-                            <div style="font-size: 0.85em; color: var(--text-secondary);">
-                                Sentiment: ${news.sentiment > 0 ? '🟢 Positive' : news.sentiment < 0 ? '🔴 Negative' : '🟡 Neutral'} 
-                                (${news.sentiment.toFixed(2)})
+                    <h3>📰 News Intelligence</h3>
+                    ${data.news_analysis.top_articles && data.news_analysis.top_articles.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: var(--accent-cyan);">Top ${data.news_analysis.top_articles.length} Recent Articles</div>
+                        ${data.news_analysis.top_articles.map(article => {
+                            const sentColor = article.sentiment > 0.1 ? 'var(--success)' : article.sentiment < -0.1 ? 'var(--danger)' : 'var(--warning)';
+                            return `
+                            <div style="padding: 12px; background: var(--bg-secondary); border-radius: 8px; margin-bottom: 10px; border-left: 3px solid ${sentColor};">
+                                <div style="font-weight: 600; margin-bottom: 5px;">${article.title || 'No title'}</div>
+                                <div style="font-size: 0.85em; color: var(--text-secondary);">
+                                    ${article.label || 'NEUTRAL'} (${article.sentiment ? article.sentiment.toFixed(2) : '0.00'})
+                                </div>
                             </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    ${data.news_analysis.breaking_news && data.news_analysis.breaking_news.length > 0 ? `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 217, 61, 0.1); border-radius: 10px; border-left: 4px solid var(--warning);">
+                        <div style="font-weight: 700; margin-bottom: 10px; color: var(--warning);">🚨 Breaking News (Last 24h)</div>
+                        ${data.news_analysis.breaking_news.map(news => `
+                            <div style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="font-weight: 600; font-size: 0.95em;">${news.title}</div>
+                                <div style="font-size: 0.8em; color: var(--text-secondary);">${news.hours_ago} hours ago • ${news.label}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    ${data.news_analysis.critical_news && data.news_analysis.critical_news.length > 0 ? `
+                    <div style="margin-bottom: 20px; padding: 15px; background: rgba(255, 56, 100, 0.1); border-radius: 10px; border-left: 4px solid var(--danger);">
+                        <div style="font-weight: 700; margin-bottom: 10px; color: var(--danger);">⚠️ Critical News</div>
+                        ${data.news_analysis.critical_news.map(news => `
+                            <div style="padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.1);">
+                                <div style="font-weight: 600; font-size: 0.95em;">${news.title}</div>
+                                <div style="font-size: 0.8em; color: var(--text-secondary);">${news.keyword.toUpperCase()} • ${news.label}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                    
+                    ${data.news_analysis.momentum ? `
+                    <div style="padding: 15px; background: rgba(0, 240, 255, 0.1); border-radius: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                            <span style="color: var(--text-secondary);">News Momentum:</span>
+                            <span style="font-weight: 700; color: ${data.news_analysis.momentum.trend === 'IMPROVING' ? 'var(--success)' : data.news_analysis.momentum.trend === 'DETERIORATING' ? 'var(--danger)' : 'var(--warning)'};">
+                                ${data.news_analysis.momentum.trend || 'STABLE'}
+                            </span>
                         </div>
-                    `).join('')}
+                        <div style="display: flex; justify-content: space-between; font-size: 0.9em;">
+                            <span style="color: var(--text-secondary);">Recent: ${(data.news_analysis.momentum.recent_sentiment || 0).toFixed(2)}</span>
+                            <span style="color: var(--text-secondary);">Older: ${(data.news_analysis.momentum.older_sentiment || 0).toFixed(2)}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                    
                     <div style="margin-top: 15px; padding: 15px; background: rgba(0, 240, 255, 0.1); border-radius: 10px;">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <span style="color: var(--text-secondary);">Overall Sentiment Score:</span>
                             <span style="font-size: 1.3em; font-weight: 700; color: ${data.sentiment_score > 0 ? 'var(--success)' : data.sentiment_score < 0 ? 'var(--danger)' : 'var(--warning)'};">
                                 ${data.sentiment_score.toFixed(2)}
                             </span>
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Price Trend Analysis Card -->
+                ${data.price_trends ? `
+                <div class="card">
+                    <h3>📈 Price Trend Analysis</h3>
+                    <div class="metric">
+                        <span class="metric-label">7-Day Momentum:</span>
+                        <span class="metric-value" style="color: ${data.price_trends.momentum_7d >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.price_trends.momentum_7d >= 0 ? '+' : ''}${data.price_trends.momentum_7d.toFixed(2)}%
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">14-Day Momentum:</span>
+                        <span class="metric-value" style="color: ${data.price_trends.momentum_14d >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.price_trends.momentum_14d >= 0 ? '+' : ''}${data.price_trends.momentum_14d.toFixed(2)}%
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">30-Day Momentum:</span>
+                        <span class="metric-value" style="color: ${data.price_trends.momentum_30d >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.price_trends.momentum_30d >= 0 ? '+' : ''}${data.price_trends.momentum_30d.toFixed(2)}%
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Support Level:</span>
+                        <span class="metric-value">$${data.price_trends.support_level.toFixed(2)}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Resistance Level:</span>
+                        <span class="metric-value">$${data.price_trends.resistance_level.toFixed(2)}</span>
+                    </div>
+                    ${data.price_metrics ? `
+                    ${data.price_metrics.distance_from_ma20 !== undefined ? `
+                    <div class="metric">
+                        <span class="metric-label">Distance from MA20:</span>
+                        <span class="metric-value" style="color: ${data.price_metrics.distance_from_ma20 >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.price_metrics.distance_from_ma20 >= 0 ? '+' : ''}${data.price_metrics.distance_from_ma20.toFixed(2)}%
+                        </span>
+                    </div>
+                    ` : ''}
+                    ${data.price_metrics.distance_from_ma50 !== undefined ? `
+                    <div class="metric">
+                        <span class="metric-label">Distance from MA50:</span>
+                        <span class="metric-value" style="color: ${data.price_metrics.distance_from_ma50 >= 0 ? 'var(--success)' : 'var(--danger)'};">
+                            ${data.price_metrics.distance_from_ma50 >= 0 ? '+' : ''}${data.price_metrics.distance_from_ma50.toFixed(2)}%
+                        </span>
+                    </div>
+                    ` : ''}
+                    ${data.price_metrics.volatility_trend ? `
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(0, 240, 255, 0.1); border-radius: 8px;">
+                        <div style="font-size: 0.9em; color: var(--text-secondary);">Volatility Trend</div>
+                        <div style="font-size: 1.2em; font-weight: 700; color: var(--accent-cyan);">
+                            ${data.price_metrics.volatility_trend}
+                        </div>
+                    </div>
+                    ` : ''}
+                    ` : ''}
+                </div>
+                ` : ''}
+                
+                <!-- Earnings Intelligence Card -->
+                ${data.earnings_intelligence ? `
+                <div class="card">
+                    <h3>💰 Earnings Intelligence</h3>
+                    ${data.earnings_intelligence.days_to_earnings !== null ? `
+                    <div style="margin-bottom: 15px; padding: 15px; background: ${data.earnings_intelligence.urgency === 'CRITICAL' ? 'rgba(255, 56, 100, 0.1)' : data.earnings_intelligence.urgency === 'HIGH' ? 'rgba(255, 217, 61, 0.1)' : 'rgba(0, 240, 255, 0.1)'}; border-radius: 10px; border-left: 4px solid ${data.earnings_intelligence.urgency === 'CRITICAL' ? 'var(--danger)' : data.earnings_intelligence.urgency === 'HIGH' ? 'var(--warning)' : 'var(--accent-cyan)'};">
+                        <div style="font-weight: 700; font-size: 1.2em; margin-bottom: 5px;">
+                            ${data.earnings_intelligence.days_to_earnings} Days Until Earnings
+                        </div>
+                        <div style="color: var(--text-secondary);">Urgency: ${data.earnings_intelligence.urgency}</div>
+                    </div>
+                    ` : ''}
+                    ${data.earnings_intelligence.average_move > 0 ? `
+                    <div class="metric">
+                        <span class="metric-label">Average Earnings Move:</span>
+                        <span class="metric-value">${data.earnings_intelligence.average_move.toFixed(1)}%</span>
+                    </div>
+                    ` : ''}
+                    ${data.earnings_intelligence.beat_rate > 0 ? `
+                    <div class="metric">
+                        <span class="metric-label">Beat Rate:</span>
+                        <span class="metric-value" style="color: var(--success);">${data.earnings_intelligence.beat_rate.toFixed(1)}%</span>
+                    </div>
+                    ` : ''}
+                    <div class="metric">
+                        <span class="metric-label">IV Crush Risk:</span>
+                        <span class="metric-value" style="color: ${data.earnings_intelligence.iv_crush_risk === 'HIGH' ? 'var(--danger)' : data.earnings_intelligence.iv_crush_risk === 'MEDIUM' ? 'var(--warning)' : 'var(--success)'};">
+                            ${data.earnings_intelligence.iv_crush_risk}
+                        </span>
+                    </div>
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(0, 240, 255, 0.1); border-radius: 8px;">
+                        <div style="font-weight: 600; margin-bottom: 5px;">Recommendation:</div>
+                        <div style="color: var(--text-primary);">${data.earnings_intelligence.recommendation.replace('_', ' ')}</div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Enhanced Technical Health Card -->
+                ${data.technical_analysis ? `
+                <div class="card">
+                    <h3>📊 Technical Health</h3>
+                    <div class="metric">
+                        <span class="metric-label">RSI:</span>
+                        <span class="metric-value" style="color: ${data.technical_analysis.rsi > 70 ? 'var(--danger)' : data.technical_analysis.rsi < 30 ? 'var(--success)' : 'var(--warning)'};">
+                            ${data.technical_analysis.rsi.toFixed(1)} (${data.technical_analysis.rsi_trend})
+                        </span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">MACD Strength:</span>
+                        <span class="metric-value">${data.technical_analysis.macd_strength}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Bollinger Squeeze:</span>
+                        <span class="metric-value">${data.technical_analysis.bb_squeeze}</span>
+                    </div>
+                    <div class="metric">
+                        <span class="metric-label">Volume Status:</span>
+                        <span class="metric-value" style="color: ${data.technical_analysis.volume_status === 'ABOVE_AVERAGE' ? 'var(--success)' : 'var(--warning)'};">
+                            ${data.technical_analysis.volume_status.replace('_', ' ')}
+                        </span>
+                    </div>
+                    <div style="margin-top: 15px; padding: 12px; background: rgba(0, 240, 255, 0.1); border-radius: 8px;">
+                        <div style="font-size: 0.9em; color: var(--text-secondary);">Trend Strength Score</div>
+                        <div style="font-size: 1.5em; font-weight: 700; color: var(--accent-cyan);">
+                            ${data.technical_analysis.trend_strength_score.toFixed(0)}/100
+                        </div>
+                        <div style="font-size: 0.85em; color: var(--text-secondary); margin-top: 5px;">
+                            Direction: ${data.technical_analysis.trend_direction}
+                        </div>
+                    </div>
+                </div>
+                ` : ''}
+                
+                <!-- Exit Strategy Card -->
+                ${data.exit_strategy ? `
+                <div class="card">
+                    <h3>🎯 Exit Strategy</h3>
+                    ${data.exit_strategy.take_profit_targets && data.exit_strategy.take_profit_targets.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: var(--success);">Take Profit Targets</div>
+                        ${data.exit_strategy.take_profit_targets.map((target, idx) => `
+                            <div style="padding: 12px; background: rgba(0, 255, 136, 0.1); border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--success);">
+                                <div style="font-weight: 700; font-size: 1.1em; color: var(--success);">$${target.price.toFixed(2)}</div>
+                                <div style="font-size: 0.85em; color: var(--text-secondary);">${target.reason}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                    ${data.exit_strategy.stop_loss_targets && data.exit_strategy.stop_loss_targets.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: var(--danger);">Stop Loss Targets</div>
+                        ${data.exit_strategy.stop_loss_targets.map((target, idx) => `
+                            <div style="padding: 12px; background: rgba(255, 56, 100, 0.1); border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--danger);">
+                                <div style="font-weight: 700; font-size: 1.1em; color: var(--danger);">$${target.price.toFixed(2)}</div>
+                                <div style="font-size: 0.85em; color: var(--text-secondary);">${target.reason}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                    ${data.exit_strategy.time_based_exits && data.exit_strategy.time_based_exits.length > 0 ? `
+                    <div style="margin-bottom: 20px;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: var(--warning);">Time-Based Exits</div>
+                        ${data.exit_strategy.time_based_exits.map((exit, idx) => `
+                            <div style="padding: 12px; background: rgba(255, 217, 61, 0.1); border-radius: 8px; margin-bottom: 8px; border-left: 3px solid var(--warning);">
+                                <div style="font-weight: 700; font-size: 1.1em; color: var(--warning);">${exit.date}</div>
+                                <div style="font-size: 0.85em; color: var(--text-secondary);">${exit.reason}</div>
+                            </div>
+                        `).join('')}
+                    </div>
+                    ` : ''}
+                    ${data.exit_strategy.risk_reward && data.exit_strategy.risk_reward.ratio ? `
+                    <div style="padding: 15px; background: rgba(0, 240, 255, 0.1); border-radius: 10px;">
+                        <div style="font-weight: 600; margin-bottom: 10px;">Risk/Reward Analysis</div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="color: var(--text-secondary);">Risk/Reward Ratio:</span>
+                            <span style="font-weight: 700; color: var(--accent-cyan);">${data.exit_strategy.risk_reward.ratio.toFixed(2)}:1</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                            <span style="color: var(--text-secondary);">Potential Profit:</span>
+                            <span style="font-weight: 700; color: var(--success);">$${data.exit_strategy.risk_reward.potential_profit.toFixed(0)}</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between;">
+                            <span style="color: var(--text-secondary);">Potential Loss:</span>
+                            <span style="font-weight: 700; color: var(--danger);">$${data.exit_strategy.risk_reward.potential_loss.toFixed(0)}</span>
+                        </div>
+                    </div>
+                    ` : ''}
+                </div>
+                ` : ''}
+                
+                <!-- Position Timeline Calendar -->
+                ${data.timeline && data.timeline.length > 0 ? `
+                <div class="card" style="grid-column: 1 / -1;">
+                    <h3>📅 Position Timeline & Exit Strategy</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                        Day-by-day recommendations based on Greeks, earnings, technicals, and sentiment. 
+                        Shows when to sell contracts based on your position size (${data.contracts} contracts).
+                    </p>
+                    
+                    <div style="display: grid; gap: 15px; max-height: 600px; overflow-y: auto; padding-right: 10px;">
+                        ${data.timeline.map((day, idx) => {
+                            let bgColor = 'var(--bg-secondary)';
+                            let borderColor = 'rgba(255, 255, 255, 0.1)';
+                            let textColor = 'var(--text-primary)';
+                            
+                            if (day.priority === 'critical') {
+                                bgColor = 'rgba(255, 56, 100, 0.15)';
+                                borderColor = 'var(--danger)';
+                            } else if (day.priority === 'high') {
+                                bgColor = 'rgba(255, 217, 61, 0.15)';
+                                borderColor = 'var(--warning)';
+                            } else if (day.priority === 'medium') {
+                                bgColor = 'rgba(0, 240, 255, 0.1)';
+                                borderColor = 'var(--accent-cyan)';
+                            }
+                            
+                            if (day.is_today) {
+                                bgColor = 'rgba(0, 240, 255, 0.2)';
+                                borderColor = 'var(--accent-cyan)';
+                                borderWidth = '3px';
+                            } else {
+                                borderWidth = '2px';
+                            }
+                            
+                            let actionColor = 'var(--text-secondary)';
+                            let actionIcon = '⏸️';
+                            if (day.recommendation === 'SELL_ALL') {
+                                actionColor = 'var(--danger)';
+                                actionIcon = '🚨';
+                            } else if (day.recommendation === 'SELL_PARTIAL') {
+                                actionColor = 'var(--warning)';
+                                actionIcon = '💰';
+                            } else {
+                                actionColor = 'var(--success)';
+                                actionIcon = '📈';
+                            }
+                            
+                            return `
+                            <div style="
+                                background: ${bgColor};
+                                border: ${borderWidth} solid ${borderColor};
+                                border-radius: 12px;
+                                padding: 20px;
+                                transition: all 0.3s ease;
+                            " onmouseover="this.style.transform='translateX(5px)'" onmouseout="this.style.transform='translateX(0)'">
+                                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 12px;">
+                                    <div>
+                                        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 5px;">
+                                            <span style="font-size: 1.5em;">${day.is_today ? '📍' : day.is_earnings_day ? '📊' : ''}</span>
+                                            <div>
+                                                <div style="font-weight: 700; font-size: 1.2em; color: ${textColor};">
+                                                    ${day.day_name}, ${new Date(day.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                                                </div>
+                                                <div style="font-size: 0.85em; color: var(--text-secondary);">
+                                                    Day ${day.days_from_entry} | ${day.days_until_expiration} days until expiration
+                                                    ${day.is_today ? ' • <strong style="color: var(--accent-cyan);">TODAY</strong>' : ''}
+                                                    ${day.is_earnings_day ? ' • <strong style="color: var(--danger);">EARNINGS DAY</strong>' : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div style="text-align: right;">
+                                        <div style="font-size: 1.8em; margin-bottom: 5px;">${actionIcon}</div>
+                                        <div style="font-weight: 700; color: ${actionColor}; font-size: 0.9em;">
+                                            ${day.recommendation.replace('_', ' ')}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                ${day.contracts_to_sell > 0 ? `
+                                <div style="
+                                    background: ${day.recommendation === 'SELL_ALL' ? 'rgba(255, 56, 100, 0.2)' : 'rgba(255, 217, 61, 0.2)'};
+                                    border-radius: 8px;
+                                    padding: 12px;
+                                    margin-bottom: 12px;
+                                    border-left: 4px solid ${day.recommendation === 'SELL_ALL' ? 'var(--danger)' : 'var(--warning)'};
+                                ">
+                                    <div style="font-weight: 700; font-size: 1.1em; color: ${day.recommendation === 'SELL_ALL' ? 'var(--danger)' : 'var(--warning)'}; margin-bottom: 5px;">
+                                        Sell ${day.contracts_to_sell} of ${data.contracts} Contract${data.contracts > 1 ? 's' : ''}
+                                    </div>
+                                    <div style="font-size: 0.9em; color: var(--text-secondary);">
+                                        ${day.reason}
+                                    </div>
+                                </div>
+                                ` : `
+                                <div style="
+                                    background: rgba(0, 255, 136, 0.1);
+                                    border-radius: 8px;
+                                    padding: 12px;
+                                    margin-bottom: 12px;
+                                    border-left: 4px solid var(--success);
+                                ">
+                                    <div style="font-weight: 600; color: var(--success); margin-bottom: 5px;">Hold All Contracts</div>
+                                    <div style="font-size: 0.9em; color: var(--text-secondary);">${day.reason}</div>
+                                </div>
+                                `}
+                                
+                                ${day.indicators && day.indicators.length > 0 ? `
+                                <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                    ${day.indicators.map(ind => `
+                                        <span style="
+                                            background: rgba(0, 240, 255, 0.15);
+                                            color: var(--accent-cyan);
+                                            padding: 6px 12px;
+                                            border-radius: 20px;
+                                            font-size: 0.85em;
+                                            font-weight: 600;
+                                        ">${ind}</span>
+                                    `).join('')}
+                                </div>
+                                ` : ''}
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                    
+                    <div style="margin-top: 20px; padding: 15px; background: rgba(0, 240, 255, 0.1); border-radius: 10px;">
+                        <div style="font-weight: 600; margin-bottom: 10px; color: var(--accent-cyan);">Legend</div>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; font-size: 0.9em;">
+                            <div><span style="color: var(--danger);">🚨 SELL_ALL</span> - Exit entire position</div>
+                            <div><span style="color: var(--warning);">💰 SELL_PARTIAL</span> - Sell some contracts</div>
+                            <div><span style="color: var(--success);">📈 HOLD</span> - Continue holding</div>
+                            <div><span style="color: var(--accent-cyan);">📍 TODAY</span> - Current date</div>
+                            <div><span style="color: var(--danger);">📊 EARNINGS</span> - Earnings announcement day</div>
                         </div>
                     </div>
                 </div>
@@ -1324,6 +1790,329 @@
             resultsBox.classList.add('active');
             resultsBox.scrollIntoView({ behavior: 'smooth' });
         }
+        
+        // Dashboard Functions
+        async function loadDashboard() {
+            try {
+                const response = await fetch('/api/dashboard');
+                const data = await response.json();
+                
+                // Update summary
+                document.getElementById('dashboardSummary').innerHTML = `
+                    <div class="card">
+                        <h3>Total Positions</h3>
+                        <div style="font-size: 2.5em; font-weight: 800; color: var(--accent-cyan);">${data.total_positions}</div>
+                        <div style="color: var(--text-secondary); margin-top: 10px;">
+                            ${data.options_count} Options • ${data.stocks_count} Stocks • ${data.crypto_count} Crypto
+                        </div>
+                    </div>
+                    <div class="card">
+                        <h3>Total Accounts</h3>
+                        <div style="font-size: 2.5em; font-weight: 800; color: var(--success);">${data.total_accounts}</div>
+                        <div style="color: var(--text-secondary); margin-top: 10px;">
+                            Total Balance: $${data.total_accounts_balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}
+                        </div>
+                    </div>
+                `;
+                
+                // Display positions
+                displayPositions(data.positions);
+                
+                // Display accounts
+                displayAccounts(data.accounts);
+                
+            } catch (error) {
+                console.error('Error loading dashboard:', error);
+            }
+        }
+        
+        function displayPositions(positions) {
+            const container = document.getElementById('positionsList');
+            
+            if (positions.length === 0) {
+                container.innerHTML = '<div class="card" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">No positions yet. Click "+ Add Position" to get started.</div>';
+                return;
+            }
+            
+            container.innerHTML = positions.map(pos => {
+                const assetType = pos.asset_type.charAt(0).toUpperCase() + pos.asset_type.slice(1);
+                const typeColor = pos.asset_type === 'option' ? 'var(--accent-cyan)' : pos.asset_type === 'crypto' ? 'var(--warning)' : 'var(--success)';
+                
+                return `
+                    <div class="card" style="position: relative;">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <div style="font-size: 1.5em; font-weight: 700; color: ${typeColor};">${pos.ticker}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.9em;">${assetType}${pos.position_type ? ' • ' + pos.position_type.toUpperCase() : ''}</div>
+                            </div>
+                            <button onclick="deletePosition(${pos.id})" style="background: rgba(255, 56, 100, 0.2); border: none; color: var(--danger); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Delete</button>
+                        </div>
+                        ${pos.asset_type === 'option' ? `
+                            <div class="metric">
+                                <span class="metric-label">Strike:</span>
+                                <span class="metric-value">$${pos.strike_price?.toFixed(2) || 'N/A'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Premium:</span>
+                                <span class="metric-value">$${pos.premium_paid?.toFixed(2) || 'N/A'}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Contracts:</span>
+                                <span class="metric-value">${pos.contracts || 1}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Expiration:</span>
+                                <span class="metric-value">${pos.expiration_date || 'N/A'}</span>
+                            </div>
+                        ` : `
+                            <div class="metric">
+                                <span class="metric-label">Shares:</span>
+                                <span class="metric-value">${pos.shares || 0}</span>
+                            </div>
+                            <div class="metric">
+                                <span class="metric-label">Entry Price:</span>
+                                <span class="metric-value">$${pos.entry_price?.toFixed(2) || 'N/A'}</span>
+                            </div>
+                        `}
+                        <div class="metric">
+                            <span class="metric-label">Entry Date:</span>
+                            <span class="metric-value">${pos.entry_date || 'N/A'}</span>
+                        </div>
+                        ${pos.notes ? `
+                            <div style="margin-top: 15px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 0.9em; color: var(--text-secondary);">
+                                ${pos.notes}
+                            </div>
+                        ` : ''}
+                        <button onclick="analyzeSavedPosition(${pos.id})" class="btn-primary" style="margin-top: 15px; width: 100%; padding: 12px;">Analyze Position</button>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function displayAccounts(accounts) {
+            const container = document.getElementById('accountsList');
+            
+            if (accounts.length === 0) {
+                container.innerHTML = '<div class="card" style="grid-column: 1 / -1; text-align: center; padding: 40px; color: var(--text-secondary);">No accounts yet. Click "+ Add Account" to get started.</div>';
+                return;
+            }
+            
+            container.innerHTML = accounts.map(acc => {
+                const typeColor = acc.account_type === 'checking' ? 'var(--accent-cyan)' : acc.account_type === 'savings' ? 'var(--success)' : 'var(--warning)';
+                
+                return `
+                    <div class="card">
+                        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+                            <div>
+                                <div style="font-size: 1.3em; font-weight: 700; color: ${typeColor};">${acc.name}</div>
+                                <div style="color: var(--text-secondary); font-size: 0.9em;">${acc.institution || 'N/A'}</div>
+                            </div>
+                            <button onclick="deleteAccount(${acc.id})" style="background: rgba(255, 56, 100, 0.2); border: none; color: var(--danger); padding: 8px 12px; border-radius: 8px; cursor: pointer; font-weight: 600;">Delete</button>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Type:</span>
+                            <span class="metric-value">${acc.account_type.charAt(0).toUpperCase() + acc.account_type.slice(1)}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Balance:</span>
+                            <span class="metric-value" style="font-size: 1.5em; color: var(--success);">$${acc.balance.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}</span>
+                        </div>
+                        <div class="metric">
+                            <span class="metric-label">Currency:</span>
+                            <span class="metric-value">${acc.currency}</span>
+                        </div>
+                        ${acc.notes ? `
+                            <div style="margin-top: 15px; padding: 10px; background: var(--bg-secondary); border-radius: 8px; font-size: 0.9em; color: var(--text-secondary);">
+                                ${acc.notes}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function showAddPositionModal() {
+            const modal = prompt(`
+Enter position details (JSON format):
+{
+  "ticker": "AAPL",
+  "asset_type": "option",
+  "position_type": "call",
+  "strike_price": 150,
+  "premium_paid": 3.50,
+  "contracts": 1,
+  "entry_date": "2024-11-16",
+  "expiration_date": "2024-11-22",
+  "notes": "Earnings play"
+}
+
+Asset types: option, stock, crypto
+            `);
+            
+            if (modal) {
+                try {
+                    const data = JSON.parse(modal);
+                    addPosition(data);
+                } catch (e) {
+                    alert('Invalid JSON format');
+                }
+            }
+        }
+        
+        async function addPosition(data) {
+            try {
+                const response = await fetch('/api/positions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    loadDashboard();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error adding position: ' + error.message);
+            }
+        }
+        
+        function showAddAccountModal() {
+            const name = prompt('Account Name (e.g., "Chase Checking"):');
+            if (!name) return;
+            
+            const type = prompt('Account Type (checking/savings/investment/crypto_wallet):', 'checking');
+            if (!type) return;
+            
+            const institution = prompt('Institution (e.g., "Chase", "Bank of America"):', '');
+            const balance = parseFloat(prompt('Balance:', '0') || '0');
+            const currency = prompt('Currency (USD, BTC, etc.):', 'USD') || 'USD';
+            const notes = prompt('Notes (optional):', '') || '';
+            
+            addAccount({ name, account_type: type, institution, balance, currency, notes });
+        }
+        
+        async function addAccount(data) {
+            try {
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                
+                if (response.ok) {
+                    loadDashboard();
+                } else {
+                    const error = await response.json();
+                    alert('Error: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error adding account: ' + error.message);
+            }
+        }
+        
+        async function deletePosition(id) {
+            if (!confirm('Delete this position?')) return;
+            
+            try {
+                const response = await fetch(`/api/positions/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadDashboard();
+                }
+            } catch (error) {
+                alert('Error deleting position: ' + error.message);
+            }
+        }
+        
+        async function deleteAccount(id) {
+            if (!confirm('Delete this account?')) return;
+            
+            try {
+                const response = await fetch(`/api/accounts/${id}`, { method: 'DELETE' });
+                if (response.ok) {
+                    loadDashboard();
+                }
+            } catch (error) {
+                alert('Error deleting account: ' + error.message);
+            }
+        }
+        
+        async function analyzeSavedPosition(id) {
+            // Load position and switch to manage position tab
+            const response = await fetch(`/api/positions/${id}`);
+            const position = await response.json();
+            
+            // Switch to manage position tab
+            switchTab('manage-position');
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            const manageBtn = document.querySelectorAll('.tab-btn')[1]; // Second button
+            if (manageBtn) manageBtn.classList.add('active');
+            
+            // Fill in the form
+            document.getElementById('positionTicker').value = position.ticker;
+            document.getElementById('positionType').value = position.position_type || 'call';
+            document.getElementById('strikePrice').value = position.strike_price || '';
+            document.getElementById('premiumPaid').value = position.premium_paid || '';
+            document.getElementById('contracts').value = position.contracts || 1;
+            document.getElementById('entryDate').value = position.entry_date || '';
+            document.getElementById('expirationDate').value = position.expiration_date || '';
+            document.getElementById('entryPrice').value = position.entry_price || '';
+            document.getElementById('positionNotes').value = position.notes || '';
+            
+            // Auto-analyze
+            setTimeout(() => analyzePosition(), 500);
+        }
+        
+        async function saveCurrentPosition() {
+            const ticker = document.getElementById('positionTicker').value.trim().toUpperCase();
+            const type = document.getElementById('positionType').value;
+            const strike = document.getElementById('strikePrice').value;
+            const premium = document.getElementById('premiumPaid').value;
+            const contracts = document.getElementById('contracts').value;
+            const entryDate = document.getElementById('entryDate').value;
+            const expirationDate = document.getElementById('expirationDate').value;
+            const entryPrice = document.getElementById('entryPrice').value;
+            const notes = document.getElementById('positionNotes').value;
+            
+            if (!ticker || !strike || !premium || !entryDate || !expirationDate) {
+                alert('Please fill in all required fields (Ticker, Strike, Premium, Entry Date, Expiration Date)');
+                return;
+            }
+            
+            const positionData = {
+                ticker: ticker,
+                asset_type: 'option',
+                position_type: type,
+                strike_price: parseFloat(strike),
+                premium_paid: parseFloat(premium),
+                contracts: parseInt(contracts),
+                entry_date: entryDate,
+                expiration_date: expirationDate,
+                entry_price: entryPrice ? parseFloat(entryPrice) : null,
+                notes: notes || null
+            };
+            
+            try {
+                const response = await fetch('/api/positions', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(positionData)
+                });
+                
+                if (response.ok) {
+                    alert('Position saved! Switch to Dashboard tab to view all your positions.');
+                    // Optionally switch to dashboard
+                    // switchTab('dashboard');
+                } else {
+                    const error = await response.json();
+                    alert('Error saving position: ' + error.error);
+                }
+            } catch (error) {
+                alert('Error saving position: ' + error.message);
+            }
+        }
+        
     </script>
 </body>
 </html>

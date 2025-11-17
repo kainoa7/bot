@@ -26,6 +26,7 @@ pytz>=2024.1
 
 # Web interface
 flask>=3.0.0
+flask-sqlalchemy>=3.1.0
 
 # Advanced calculations
 scipy>=1.11.0

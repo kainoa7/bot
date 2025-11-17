@@ -243,6 +243,147 @@ class DataCollector:
                 print(f"Warning: Could not fetch news: {str(e)}")
         
         return news
+    
+    def get_historical_earnings_data(self) -> Dict:
+        """
+        Get historical earnings data and move analysis
+        
+        Returns:
+            Dictionary with earnings history and statistics
+        """
+        try:
+            # Get earnings history - yfinance may not have this for all stocks
+            try:
+                earnings = self.stock.earnings_history
+            except AttributeError:
+                # earnings_history might not be available
+                earnings = None
+            
+            if earnings is None or (hasattr(earnings, '__len__') and len(earnings) == 0):
+                return {
+                    'available': False,
+                    'average_move': 0,
+                    'beat_count': 0,
+                    'miss_count': 0,
+                    'meet_count': 0,
+                    'total_quarters': 0,
+                    'beat_rate': 0,
+                }
+            
+            # Check if it's a DataFrame
+            if not isinstance(earnings, pd.DataFrame):
+                return {
+                    'available': False,
+                    'average_move': 0,
+                    'beat_count': 0,
+                    'miss_count': 0,
+                    'meet_count': 0,
+                    'total_quarters': 0,
+                    'beat_rate': 0,
+                }
+            
+            moves = []
+            beats = 0
+            misses = 0
+            meets = 0
+            
+            for _, row in earnings.iterrows():
+                # Calculate move percentage if available
+                if 'epsActual' in row and 'epsEstimate' in row:
+                    if pd.notna(row['epsActual']) and pd.notna(row['epsEstimate']):
+                        if row['epsEstimate'] != 0:
+                            move_pct = ((row['epsActual'] - row['epsEstimate']) / abs(row['epsEstimate'])) * 100
+                            moves.append(abs(move_pct))
+                            
+                            if row['epsActual'] > row['epsEstimate']:
+                                beats += 1
+                            elif row['epsActual'] < row['epsEstimate']:
+                                misses += 1
+                            else:
+                                meets += 1
+            
+            avg_move = sum(moves) / len(moves) if moves else 0
+            
+            return {
+                'available': True,
+                'average_move': avg_move,
+                'beat_count': beats,
+                'miss_count': misses,
+                'meet_count': meets,
+                'total_quarters': len(earnings),
+                'beat_rate': (beats / len(earnings) * 100) if len(earnings) > 0 else 0,
+            }
+        except Exception as e:
+            print(f"Warning: Could not fetch historical earnings data: {str(e)}")
+            return {
+                'available': False,
+                'average_move': 0,
+                'beat_count': 0,
+                'miss_count': 0,
+                'meet_count': 0,
+                'total_quarters': 0,
+                'beat_rate': 0,
+            }
+    
+    def get_price_performance_metrics(self, periods: List[int] = [7, 14, 30]) -> Dict:
+        """
+        Calculate price performance metrics for different periods
+        
+        Args:
+            periods: List of days to calculate performance for
+            
+        Returns:
+            Dictionary with performance metrics
+        """
+        try:
+            price_data = self.get_price_data(period='1y')
+            if price_data.empty:
+                return {}
+            
+            current_price = price_data['Close'].iloc[-1]
+            metrics = {}
+            
+            for days in periods:
+                if len(price_data) > days:
+                    past_price = price_data['Close'].iloc[-days-1]
+                    change_pct = ((current_price - past_price) / past_price) * 100
+                    metrics[f'{days}d_change'] = change_pct
+                    metrics[f'{days}d_price'] = past_price
+            
+            # Calculate distance from moving averages
+            ma_20 = price_data['Close'].rolling(20).mean().iloc[-1] if len(price_data) >= 20 else None
+            ma_50 = price_data['Close'].rolling(50).mean().iloc[-1] if len(price_data) >= 50 else None
+            ma_200 = price_data['Close'].rolling(200).mean().iloc[-1] if len(price_data) >= 200 else None
+            
+            metrics['current_price'] = current_price
+            if ma_20:
+                metrics['distance_from_ma20'] = ((current_price - ma_20) / ma_20) * 100
+            if ma_50:
+                metrics['distance_from_ma50'] = ((current_price - ma_50) / ma_50) * 100
+            if ma_200:
+                metrics['distance_from_ma200'] = ((current_price - ma_200) / ma_200) * 100
+            
+            # Calculate volatility trend
+            if len(price_data) >= 30:
+                recent_vol = price_data['Close'].pct_change().tail(14).std() * 100
+                older_vol = price_data['Close'].pct_change().tail(30).head(16).std() * 100
+                metrics['volatility_trend'] = 'INCREASING' if recent_vol > older_vol else 'DECREASING'
+                metrics['recent_volatility'] = recent_vol
+                metrics['older_volatility'] = older_vol
+            
+            # Calculate support/resistance levels
+            if len(price_data) >= 30:
+                recent_high = price_data['High'].tail(30).max()
+                recent_low = price_data['Low'].tail(30).min()
+                metrics['resistance_level'] = recent_high
+                metrics['support_level'] = recent_low
+                metrics['distance_to_resistance'] = ((recent_high - current_price) / current_price) * 100
+                metrics['distance_to_support'] = ((current_price - recent_low) / current_price) * 100
+            
+            return metrics
+        except Exception as e:
+            print(f"Warning: Could not calculate price performance metrics: {str(e)}")
+            return {}
 
 
 if __name__ == "__main__":
